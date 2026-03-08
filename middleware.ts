@@ -38,7 +38,7 @@ function timeAgo(minutesAgo: number): string {
 const AGENTS = [
   {
     id: "agent-ceo",
-    role: "ceo",
+    role: "CEO",
     title: "CEO",
     name: "The Strategist",
     model: "opus",
@@ -61,7 +61,7 @@ const AGENTS = [
   },
   {
     id: "agent-marketing",
-    role: "marketing",
+    role: "Marketing",
     title: "Marketing Director",
     name: "The Growth Engine",
     model: "sonnet",
@@ -84,7 +84,7 @@ const AGENTS = [
   },
   {
     id: "agent-sales",
-    role: "sales",
+    role: "Sales",
     title: "Sales Manager",
     name: "The Closer",
     model: "sonnet",
@@ -107,7 +107,7 @@ const AGENTS = [
   },
   {
     id: "agent-operations",
-    role: "operations",
+    role: "Operations",
     title: "Operations Lead",
     name: "The Optimizer",
     model: "sonnet",
@@ -130,7 +130,7 @@ const AGENTS = [
   },
   {
     id: "agent-engineering",
-    role: "engineering",
+    role: "Engineering",
     title: "Engineer",
     name: "The Builder",
     model: "sonnet",
@@ -153,7 +153,7 @@ const AGENTS = [
   },
   {
     id: "agent-content",
-    role: "content",
+    role: "Content",
     title: "Content Creator",
     name: "The Storyteller",
     model: "haiku",
@@ -176,7 +176,7 @@ const AGENTS = [
   },
   {
     id: "agent-analytics",
-    role: "analytics",
+    role: "Analytics",
     title: "Data Analyst",
     name: "The Numbers",
     model: "haiku",
@@ -209,7 +209,8 @@ const TASKS = [
     description:
       "Conduct comprehensive research on the D2C coffee subscription market including TAM, key trends, consumer preferences, and growth projections for 2026.",
     status: "completed",
-    assignee: "marketing",
+    assignee: "Marketing Director",
+    assigneeRole: "Marketing",
     week: 1,
     canEdit: false,
     canCancel: false,
@@ -224,7 +225,8 @@ const TASKS = [
     description:
       "Analyze top 10 D2C coffee competitors (Trade, Atlas, Blue Bottle, Driftaway, etc.) — pricing, positioning, subscription models, retention strategies, and customer reviews.",
     status: "completed",
-    assignee: "analytics",
+    assignee: "Data Analyst",
+    assigneeRole: "Analytics",
     week: 1,
     canEdit: false,
     canCancel: false,
@@ -239,7 +241,8 @@ const TASKS = [
     description:
       "Define brand pillars, voice, visual identity direction, and unique value proposition for FreshRoast Coffee. Create brand guidelines document.",
     status: "completed",
-    assignee: "content",
+    assignee: "Content Creator",
+    assigneeRole: "Content",
     week: 1,
     canEdit: false,
     canCancel: false,
@@ -254,7 +257,8 @@ const TASKS = [
     description:
       "Design information architecture, select and customize Shopify theme, configure subscription app (Recharge), set up product catalog with 6 initial SKUs.",
     status: "completed",
-    assignee: "engineering",
+    assignee: "The Builder",
+    assigneeRole: "Engineering",
     week: 1,
     canEdit: false,
     canCancel: false,
@@ -269,7 +273,8 @@ const TASKS = [
     description:
       "Identify and negotiate terms with 3 small-batch roasters for white-label roast-to-order fulfillment. Establish quality standards and SLA for 48-hour roast-to-ship.",
     status: "completed",
-    assignee: "operations",
+    assignee: "Operations Lead",
+    assigneeRole: "Operations",
     week: 1,
     canEdit: false,
     canCancel: false,
@@ -286,7 +291,8 @@ const TASKS = [
     description:
       "Build a 90-day content calendar spanning blog, Instagram, TikTok, and email. Define content pillars, posting cadence, and production workflow.",
     status: "completed",
-    assignee: "content",
+    assignee: "Content Creator",
+    assigneeRole: "Content",
     week: 2,
     canEdit: false,
     canCancel: false,
@@ -301,7 +307,8 @@ const TASKS = [
     description:
       "Write and configure a 7-email welcome series for new subscribers and a 5-email win-back sequence for churned customers in Klaviyo.",
     status: "completed",
-    assignee: "content",
+    assignee: "Content Creator",
+    assigneeRole: "Content",
     week: 2,
     canEdit: false,
     canCancel: false,
@@ -316,7 +323,8 @@ const TASKS = [
     description:
       "Create and brand Instagram, TikTok, Twitter/X, and Facebook accounts. Write bios, upload profile/banner images, and post initial 5 pieces of content on each.",
     status: "completed",
-    assignee: "marketing",
+    assignee: "Marketing Director",
+    assigneeRole: "Marketing",
     week: 2,
     canEdit: false,
     canCancel: false,
@@ -331,7 +339,8 @@ const TASKS = [
     description:
       "Run full technical SEO audit (Core Web Vitals, schema markup, sitemap, robots.txt). Optimize all product and collection pages for target keywords.",
     status: "completed",
-    assignee: "engineering",
+    assignee: "The Builder",
+    assigneeRole: "Engineering",
     week: 2,
     canEdit: false,
     canCancel: false,
@@ -346,7 +355,8 @@ const TASKS = [
     description:
       "Set up GA4, Meta Pixel, TikTok Pixel, server-side tracking via Shopify, and a unified KPI dashboard in Looker Studio.",
     status: "completed",
-    assignee: "analytics",
+    assignee: "Data Analyst",
+    assigneeRole: "Analytics",
     week: 2,
     canEdit: false,
     canCancel: false,
@@ -363,7 +373,8 @@ const TASKS = [
     description:
       "Create and launch initial paid acquisition campaigns: Meta (prospecting + retargeting), Google (brand + non-brand search, Shopping). Set daily budget at $75.",
     status: "in_progress",
-    assignee: "marketing",
+    assignee: "Marketing Director",
+    assigneeRole: "Marketing",
     week: 3,
     canEdit: true,
     canCancel: true,
@@ -377,7 +388,8 @@ const TASKS = [
     description:
       "Identify 50 micro-influencers (10K–100K followers) in coffee, lifestyle, and WFH niches. Send personalized outreach with free product offer in exchange for honest review.",
     status: "in_progress",
-    assignee: "sales",
+    assignee: "Sales Manager",
+    assigneeRole: "Sales",
     week: 3,
     canEdit: true,
     canCancel: true,
@@ -391,7 +403,8 @@ const TASKS = [
     description:
       "Draft and send partnership proposals to 10 complementary brands (ceramic mug makers, pastry shops, co-working spaces) for cross-promotion and bundled offers.",
     status: "in_progress",
-    assignee: "sales",
+    assignee: "Sales Manager",
+    assigneeRole: "Sales",
     week: 3,
     canEdit: true,
     canCancel: true,
@@ -405,7 +418,8 @@ const TASKS = [
     description:
       "Build and launch a 'Give $5, Get $5' referral program using ReferralCandy. Create shareable landing pages and email triggers.",
     status: "planned",
-    assignee: "engineering",
+    assignee: "The Builder",
+    assigneeRole: "Engineering",
     week: 3,
     canEdit: true,
     canCancel: true,
@@ -419,7 +433,8 @@ const TASKS = [
     description:
       "Publish 6 long-form blog posts targeting high-intent keywords: 'best coffee subscription 2026', 'single origin vs blend', 'how to brew pour over at home', etc.",
     status: "in_progress",
-    assignee: "content",
+    assignee: "Content Creator",
+    assigneeRole: "Content",
     week: 3,
     canEdit: true,
     canCancel: false,
@@ -435,7 +450,8 @@ const TASKS = [
     description:
       "Compile 30-day performance report: revenue, CAC by channel, LTV projections, funnel conversion rates, and top-performing content. Present findings and recommendations.",
     status: "planned",
-    assignee: "analytics",
+    assignee: "Data Analyst",
+    assigneeRole: "Analytics",
     week: 4,
     canEdit: true,
     canCancel: true,
@@ -449,7 +465,8 @@ const TASKS = [
     description:
       "Based on Week 3 data, kill underperforming ad sets, scale winners, test 5 new creatives, and refine lookalike audiences for Meta. Adjust Google bids.",
     status: "planned",
-    assignee: "marketing",
+    assignee: "Marketing Director",
+    assigneeRole: "Marketing",
     week: 4,
     canEdit: true,
     canCancel: true,
@@ -463,7 +480,8 @@ const TASKS = [
     description:
       "Send NPS survey to first 100 subscribers. Aggregate feedback themes, identify top 3 improvement areas, and create action items for each department.",
     status: "planned",
-    assignee: "operations",
+    assignee: "Operations Lead",
+    assigneeRole: "Operations",
     week: 4,
     canEdit: true,
     canCancel: true,
@@ -477,7 +495,8 @@ const TASKS = [
     description:
       "Based on Month 1 learnings, draft Month 2 plan: new SKUs, expanded ad budget, wholesale channel exploration, and hiring roadmap for first human team members.",
     status: "pending",
-    assignee: "ceo",
+    assignee: "CEO",
+    assigneeRole: "CEO",
     week: 4,
     canEdit: true,
     canCancel: true,
@@ -491,7 +510,8 @@ const TASKS = [
     description:
       "Design and implement a 'Build Your Box' upgrade flow where subscribers can add pastries, mugs, or brewing gear to their next shipment. Integrate with Recharge.",
     status: "pending",
-    assignee: "engineering",
+    assignee: "The Builder",
+    assigneeRole: "Engineering",
     week: 4,
     canEdit: true,
     canCancel: true,
@@ -507,6 +527,8 @@ const ACTIVITY = [
   {
     id: "act-001",
     type: "delegation",
+    agent: "The Strategist",
+    role: "CEO",
     from: "ceo",
     to: "marketing",
     message:
@@ -517,6 +539,8 @@ const ACTIVITY = [
   {
     id: "act-002",
     type: "delegation",
+    agent: "The Strategist",
+    role: "CEO",
     from: "ceo",
     to: "analytics",
     message:
@@ -527,6 +551,8 @@ const ACTIVITY = [
   {
     id: "act-003",
     type: "task_started",
+    agent: "Marketing Director",
+    role: "Marketing",
     from: "marketing",
     to: "ceo",
     message:
@@ -537,6 +563,8 @@ const ACTIVITY = [
   {
     id: "act-004",
     type: "research_complete",
+    agent: "Data Analyst",
+    role: "Analytics",
     from: "analytics",
     to: "ceo",
     message:
@@ -547,6 +575,8 @@ const ACTIVITY = [
   {
     id: "act-005",
     type: "decision",
+    agent: "The Strategist",
+    role: "CEO",
     from: "ceo",
     to: "content",
     message:
@@ -557,6 +587,8 @@ const ACTIVITY = [
   {
     id: "act-006",
     type: "delegation",
+    agent: "The Strategist",
+    role: "CEO",
     from: "ceo",
     to: "operations",
     message:
@@ -567,6 +599,8 @@ const ACTIVITY = [
   {
     id: "act-007",
     type: "task_completed",
+    agent: "Marketing Director",
+    role: "Marketing",
     from: "marketing",
     to: "ceo",
     message:
@@ -577,6 +611,8 @@ const ACTIVITY = [
   {
     id: "act-008",
     type: "status_update",
+    agent: "Operations Lead",
+    role: "Operations",
     from: "operations",
     to: "ceo",
     message:
@@ -587,6 +623,8 @@ const ACTIVITY = [
   {
     id: "act-009",
     type: "task_completed",
+    agent: "Content Creator",
+    role: "Content",
     from: "content",
     to: "ceo",
     message:
@@ -597,6 +635,8 @@ const ACTIVITY = [
   {
     id: "act-010",
     type: "delegation",
+    agent: "The Strategist",
+    role: "CEO",
     from: "ceo",
     to: "engineering",
     message:
@@ -607,6 +647,8 @@ const ACTIVITY = [
   {
     id: "act-011",
     type: "question",
+    agent: "The Builder",
+    role: "Engineering",
     from: "engineering",
     to: "ceo",
     message:
@@ -616,6 +658,8 @@ const ACTIVITY = [
   {
     id: "act-012",
     type: "answer",
+    agent: "The Strategist",
+    role: "CEO",
     from: "ceo",
     to: "engineering",
     message:
@@ -625,6 +669,8 @@ const ACTIVITY = [
   {
     id: "act-013",
     type: "task_completed",
+    agent: "Operations Lead",
+    role: "Operations",
     from: "operations",
     to: "ceo",
     message:
@@ -635,6 +681,8 @@ const ACTIVITY = [
   {
     id: "act-014",
     type: "task_completed",
+    agent: "The Builder",
+    role: "Engineering",
     from: "engineering",
     to: "ceo",
     message:
@@ -645,6 +693,8 @@ const ACTIVITY = [
   {
     id: "act-015",
     type: "delegation",
+    agent: "The Strategist",
+    role: "CEO",
     from: "ceo",
     to: "content",
     message:
@@ -655,6 +705,8 @@ const ACTIVITY = [
   {
     id: "act-016",
     type: "status_update",
+    agent: "Content Creator",
+    role: "Content",
     from: "content",
     to: "marketing",
     message:
@@ -665,6 +717,8 @@ const ACTIVITY = [
   {
     id: "act-017",
     type: "task_completed",
+    agent: "Data Analyst",
+    role: "Analytics",
     from: "analytics",
     to: "ceo",
     message:
@@ -675,6 +729,8 @@ const ACTIVITY = [
   {
     id: "act-018",
     type: "task_started",
+    agent: "Marketing Director",
+    role: "Marketing",
     from: "marketing",
     to: "ceo",
     message:
@@ -685,6 +741,8 @@ const ACTIVITY = [
   {
     id: "act-019",
     type: "status_update",
+    agent: "Sales Manager",
+    role: "Sales",
     from: "sales",
     to: "ceo",
     message:
@@ -695,6 +753,8 @@ const ACTIVITY = [
   {
     id: "act-020",
     type: "status_update",
+    agent: "Marketing Director",
+    role: "Marketing",
     from: "marketing",
     to: "ceo",
     message:
@@ -705,6 +765,8 @@ const ACTIVITY = [
   {
     id: "act-021",
     type: "decision",
+    agent: "The Strategist",
+    role: "CEO",
     from: "ceo",
     to: "sales",
     message:
@@ -715,6 +777,8 @@ const ACTIVITY = [
   {
     id: "act-022",
     type: "status_update",
+    agent: "Content Creator",
+    role: "Content",
     from: "content",
     to: "ceo",
     message:
@@ -725,6 +789,8 @@ const ACTIVITY = [
   {
     id: "act-023",
     type: "status_update",
+    agent: "The Builder",
+    role: "Engineering",
     from: "engineering",
     to: "ceo",
     message:
@@ -1010,7 +1076,7 @@ const routes: Array<{ pattern: RegExp; method: string; handler: RouteHandler }> 
     method: "GET",
     handler: (_req, match) => {
       const role = match?.[1];
-      const agent = AGENTS.find((a) => a.role === role || a.id === `agent-${role}`);
+      const agent = AGENTS.find((a) => a.role.toLowerCase() === role || a.id === `agent-${role}`);
       if (!agent) return json({ error: "Agent not found" }, 404);
       return json(agent);
     },
@@ -1032,22 +1098,18 @@ const routes: Array<{ pattern: RegExp; method: string; handler: RouteHandler }> 
   {
     pattern: /^\/api\/chat\/?$/,
     method: "GET",
-    handler: () => json({ messages: CHAT_MESSAGES }),
+    handler: () => json(CHAT_MESSAGES),
   },
   {
     pattern: /^\/api\/chat\/?$/,
     method: "POST",
     handler: () =>
       json({
-        success: true,
-        message: {
-          id: `msg-demo-${Date.now()}`,
-          role: "assistant",
-          agentRole: "ceo",
-          content:
-            "Thanks for the message! In demo mode, the CEO agent can't generate live responses — but in production, I'd analyze your request and coordinate with the team to act on it.",
-          timestamp: new Date().toISOString(),
-        },
+        id: `msg-demo-${Date.now()}`,
+        role: "assistant",
+        content:
+          "Thanks for the message! In demo mode I can't generate live responses — but in production, I'd analyze your request and coordinate with the team to act on it immediately.",
+        timestamp: new Date().toISOString(),
       }),
   },
 
