@@ -1,747 +1,1056 @@
 "use client";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
-import { useState, useEffect, useCallback } from "react";
-import {
-  ArrowRight,
-  ArrowLeft,
-  Building2,
-  Lightbulb,
-  Globe,
-  Users,
-  Target,
-  Rocket,
-  CheckCircle2,
-  Loader2,
-  Sparkles,
-  Bot,
-  BarChart3,
-  PenTool,
-  Megaphone,
-  Settings,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+// ── Design tokens (Apple light theme) ─────────────────────────────
+const T = {
+  pageBg: "#fbfbfd",
+  cardBg: "#fff",
+  subtleBg: "#f5f5f7",
+  text: "#1d1d1f",
+  secondary: "#86868b",
+  tertiary: "#aeaeb2",
+  accent: "#0071e3",
+  border: "rgba(0,0,0,0.08)",
+  cardRadius: 20,
+  cardShadow: "0 1px 8px rgba(0,0,0,0.06)",
+  pillRadius: 980,
+  inputRadius: 12,
+  selectedPillBg: "rgba(0,113,227,0.08)",
+  selectedPillBorder: "rgba(0,113,227,0.3)",
+} as const;
 
-/* ────────────────────── types ──────────────────────────────── */
+const STORAGE_KEY = "runmybiz_onboard_v2";
 
-interface FormData {
-  path: "existing" | "new" | null;
-  // existing business
-  companyName: string;
+// ── Types ──────────────────────────────────────────────────────────
+type Path = "existing" | "new" | null;
+
+interface GoalQuestion {
+  question: string;
+  type: "text" | "pills";
+  choices?: string[];
+  placeholder?: string;
+}
+
+interface WizardState {
+  path: Path;
+  // Existing business fields
   website: string;
-  whatYouSell: string;
+  whatSell: string;
   primaryCustomer: string;
   biggestChallenge: string;
-  // new idea
+  monthlyRevenue: string;
+  customerCount: string;
+  // New business fields
   businessIdea: string;
-  category: string;
-  // goals
-  goals: string[];
+  ideaCategory: string;
+  industry: string;
+  stage: string;
+  companyName: string;
+  companyDescription: string;
+  problemSolves: string;
+  revenueModel: string;
+  hasCustomers: string;
+  biggestConcern: string;
+  ninetyDayVision: string;
+  // Shared
+  aiGoalQuestions: GoalQuestion[];
+  goalAnswers: string[];
+  plan: string | null;
+  currentStep: number;
 }
 
-const STORAGE_KEY = "runmybiz-onboard";
-
-const INITIAL: FormData = {
+const initialState: WizardState = {
   path: null,
-  companyName: "",
   website: "",
-  whatYouSell: "",
+  whatSell: "",
   primaryCustomer: "",
   biggestChallenge: "",
+  monthlyRevenue: "",
+  customerCount: "",
   businessIdea: "",
-  category: "",
-  goals: [],
+  ideaCategory: "",
+  industry: "",
+  stage: "",
+  companyName: "",
+  companyDescription: "",
+  problemSolves: "",
+  revenueModel: "",
+  hasCustomers: "",
+  biggestConcern: "",
+  ninetyDayVision: "",
+  aiGoalQuestions: [],
+  goalAnswers: [],
+  plan: null,
+  currentStep: 0,
 };
 
-/* ────────────────────── data ───────────────────────────────── */
+// ── Pill option sets ───────────────────────────────────────────────
+const CHALLENGES = ["Growth", "Operations", "Marketing", "Product", "Funding", "Team"];
+const REVENUES = ["Pre-revenue", "<$1K", "$1K–$10K", "$10K–$100K", "$100K+"];
+const CUSTOMER_COUNTS = ["0", "1–10", "11–100", "100–1K", "1K+"];
+const IDEA_CATEGORIES = ["SaaS", "E-commerce", "Consulting", "Agency", "Marketplace", "Creator", "Services", "Other"];
+const INDUSTRIES = ["Technology", "Healthcare", "Finance", "Education", "Retail", "Food & Bev", "Real Estate", "Media", "Fitness", "Other"];
+const STAGES = ["Idea", "MVP", "Early Traction", "Growth", "Scale"];
+const REVENUE_MODELS = ["Subscriptions", "One-time sales", "Services", "Ads", "Marketplace %", "Other"];
+const HAS_CUSTOMERS_OPTIONS = ["Yes", "No", "In talks"];
 
-const CHALLENGES = [
-  "Getting more customers",
-  "Increasing revenue",
-  "Reducing costs",
-  "Building online presence",
-  "Managing operations",
-  "Content creation",
-];
+// ── Styles ─────────────────────────────────────────────────────────
+const styles = {
+  page: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px 16px",
+    background: T.pageBg,
+    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif',
+  } as React.CSSProperties,
+  card: {
+    background: T.cardBg,
+    borderRadius: T.cardRadius,
+    boxShadow: T.cardShadow,
+    border: `1px solid ${T.border}`,
+    padding: "40px 36px",
+    maxWidth: 520,
+    width: "100%",
+    position: "relative" as const,
+    overflow: "hidden",
+  } as React.CSSProperties,
+  progress: {
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    height: 3,
+    background: T.accent,
+    borderRadius: "0 3px 3px 0",
+    transition: "width 0.4s ease",
+  } as React.CSSProperties,
+  heading: {
+    fontSize: 28,
+    fontWeight: 700,
+    color: T.text,
+    marginBottom: 8,
+    letterSpacing: "-0.02em",
+    lineHeight: 1.2,
+  } as React.CSSProperties,
+  subheading: {
+    fontSize: 15,
+    color: T.secondary,
+    marginBottom: 28,
+    lineHeight: 1.5,
+  } as React.CSSProperties,
+  label: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: T.secondary,
+    marginBottom: 6,
+    display: "block",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.04em",
+  } as React.CSSProperties,
+  input: {
+    width: "100%",
+    padding: "14px 16px",
+    fontSize: 16,
+    background: T.subtleBg,
+    border: `1px solid ${T.border}`,
+    borderRadius: T.inputRadius,
+    color: T.text,
+    outline: "none",
+    transition: "border-color 0.2s, box-shadow 0.2s",
+    boxSizing: "border-box" as const,
+  } as React.CSSProperties,
+  textarea: {
+    width: "100%",
+    padding: "14px 16px",
+    fontSize: 16,
+    background: T.subtleBg,
+    border: `1px solid ${T.border}`,
+    borderRadius: T.inputRadius,
+    color: T.text,
+    outline: "none",
+    resize: "none" as const,
+    minHeight: 100,
+    lineHeight: 1.5,
+    transition: "border-color 0.2s, box-shadow 0.2s",
+    boxSizing: "border-box" as const,
+  } as React.CSSProperties,
+  primaryBtn: {
+    width: "100%",
+    padding: "14px 24px",
+    fontSize: 16,
+    fontWeight: 600,
+    color: "#fff",
+    background: T.accent,
+    border: "none",
+    borderRadius: T.pillRadius,
+    cursor: "pointer",
+    transition: "opacity 0.2s, transform 0.1s",
+    marginTop: 24,
+  } as React.CSSProperties,
+  backLink: {
+    fontSize: 14,
+    color: T.accent,
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: 0,
+    marginBottom: 20,
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+  } as React.CSSProperties,
+  pill: (selected: boolean) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "10px 18px",
+    fontSize: 14,
+    fontWeight: 500,
+    borderRadius: T.pillRadius,
+    border: `1px solid ${selected ? T.selectedPillBorder : T.border}`,
+    background: selected ? T.selectedPillBg : T.cardBg,
+    color: selected ? T.accent : T.text,
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    whiteSpace: "nowrap" as const,
+  } as React.CSSProperties),
+  pathCard: (selected: boolean) => ({
+    flex: 1,
+    padding: "28px 20px",
+    borderRadius: 16,
+    border: `2px solid ${selected ? T.accent : T.border}`,
+    background: selected ? T.selectedPillBg : T.cardBg,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    textAlign: "center" as const,
+  } as React.CSSProperties),
+  slugPreview: {
+    fontSize: 12,
+    color: T.tertiary,
+    marginTop: 4,
+  } as React.CSSProperties,
+  charCount: {
+    fontSize: 12,
+    color: T.tertiary,
+    textAlign: "right" as const,
+    marginTop: 4,
+  } as React.CSSProperties,
+  stepContainer: (direction: number) => ({
+    animation: `slideIn 0.35s ease forwards`,
+  } as React.CSSProperties),
+  spinner: {
+    width: 40,
+    height: 40,
+    border: `3px solid ${T.subtleBg}`,
+    borderTopColor: T.accent,
+    borderRadius: "50%",
+    animation: "spin 0.8s linear infinite",
+    margin: "0 auto 16px",
+  } as React.CSSProperties,
+  planStep: {
+    padding: "14px 16px",
+    background: T.subtleBg,
+    borderRadius: 12,
+    marginBottom: 8,
+    fontSize: 14,
+    color: T.text,
+    lineHeight: 1.5,
+  } as React.CSSProperties,
+} as const;
 
-const CATEGORIES = [
-  "SaaS",
-  "E-commerce",
-  "Services",
-  "Agency",
-  "Marketplace",
-  "Other",
-];
-
-const GOAL_OPTIONS_EXISTING = [
-  "Grow email list",
-  "Launch social media",
-  "Improve SEO",
-  "Run paid ads",
-  "Build landing page",
-  "Set up analytics",
-  "Create content calendar",
-  "Automate customer emails",
-];
-
-const GOAL_OPTIONS_NEW = [
-  "Validate business idea",
-  "Build landing page",
-  "Launch social media",
-  "Create brand identity",
-  "Set up analytics",
-  "Build email waitlist",
-  "Create content calendar",
-  "Research competitors",
-];
-
-const AGENTS = [
-  {
-    name: "Marketing Agent",
-    role: "Campaigns, SEO, and ads",
-    icon: Megaphone,
-    color: "#0071e3",
-  },
-  {
-    name: "Content Agent",
-    role: "Blog posts, social media, and email",
-    icon: PenTool,
-    color: "#ff9500",
-  },
-  {
-    name: "Analytics Agent",
-    role: "Reports, metrics, and forecasts",
-    icon: BarChart3,
-    color: "#34c759",
-  },
-  {
-    name: "Operations Agent",
-    role: "Workflows, docs, and automation",
-    icon: Settings,
-    color: "#af52de",
-  },
-];
-
-/* ────────────────────── helpers ─────────────────────────────── */
-
-function loadFormData(): FormData {
-  if (typeof window === "undefined") return INITIAL;
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (raw) return { ...INITIAL, ...JSON.parse(raw) };
-  } catch {
-    /* ignore */
-  }
-  return INITIAL;
+// ── Inline keyframes ───────────────────────────────────────────────
+const KEYFRAMES = `
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
 }
-
-function saveFormData(data: FormData) {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    /* ignore */
-  }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+`;
 
-/* ────────────────────── step indicator ──────────────────────── */
-
-function StepIndicator({
-  current,
-  total,
+// ── Helper components ──────────────────────────────────────────────
+function PillGroup({
+  options,
+  value,
+  onChange,
 }: {
-  current: number;
-  total: number;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center justify-center gap-2 py-8">
-      {Array.from({ length: total }, (_, i) => {
-        const step = i + 1;
-        const isActive = step === current;
-        const isCompleted = step < current;
-        return (
-          <div key={step} className="flex items-center gap-2">
-            <div
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-all duration-300",
-                isActive && "bg-[#0071e3] text-white",
-                isCompleted && "bg-[#34c759] text-white",
-                !isActive && !isCompleted && "bg-[#f5f5f7] text-[#86868b]"
-              )}
-            >
-              {isCompleted ? <CheckCircle2 size={16} /> : step}
-            </div>
-            {i < total - 1 && (
-              <div
-                className={cn(
-                  "h-0.5 w-8 rounded-full transition-all duration-300",
-                  step < current ? "bg-[#34c759]" : "bg-[#e5e5e7]"
-                )}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ────────────────────── step 1: path ───────────────────────── */
-
-function Step1({
-  data,
-  onUpdate,
-  onNext,
-}: {
-  data: FormData;
-  onUpdate: (d: Partial<FormData>) => void;
-  onNext: () => void;
-}) {
-  const select = (path: "existing" | "new") => {
-    onUpdate({ path });
-    // Small delay so user sees the selection
-    setTimeout(onNext, 200);
-  };
-
-  return (
-    <div className="animate-fade-in">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-[#1d1d1f] md:text-3xl">
-          Do you already have a business?
-        </h1>
-        <p className="mt-2 text-[#86868b]">
-          This helps us tailor your experience.
-        </p>
-      </div>
-
-      <div className="mt-10 grid gap-4 sm:grid-cols-2">
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      {options.map((opt) => (
         <button
-          onClick={() => select("existing")}
-          className={cn(
-            "card card-hover flex flex-col items-center gap-4 p-8 text-center transition-all",
-            data.path === "existing" && "border-[#0071e3] bg-[#f0f5ff]"
-          )}
+          key={opt}
+          type="button"
+          onClick={() => onChange(opt)}
+          style={styles.pill(value === opt)}
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f5f5f7]">
-            <Building2 size={28} className="text-[#0071e3]" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-[#1d1d1f]">
-              Yes, I have a business
-            </h3>
-            <p className="mt-1 text-sm text-[#86868b]">
-              Let&apos;s optimize and grow what you&apos;ve built.
-            </p>
-          </div>
+          {opt}
         </button>
+      ))}
+    </div>
+  );
+}
 
+function StageSelector({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ display: "flex", gap: 0, borderRadius: T.pillRadius, overflow: "hidden", border: `1px solid ${T.border}` }}>
+      {STAGES.map((s) => (
         <button
-          onClick={() => select("new")}
-          className={cn(
-            "card card-hover flex flex-col items-center gap-4 p-8 text-center transition-all",
-            data.path === "new" && "border-[#0071e3] bg-[#f0f5ff]"
-          )}
+          key={s}
+          type="button"
+          onClick={() => onChange(s.toLowerCase().replace(" ", "-"))}
+          style={{
+            flex: 1,
+            padding: "10px 6px",
+            fontSize: 13,
+            fontWeight: 500,
+            border: "none",
+            background: value === s.toLowerCase().replace(" ", "-") ? T.accent : T.cardBg,
+            color: value === s.toLowerCase().replace(" ", "-") ? "#fff" : T.secondary,
+            cursor: "pointer",
+            transition: "all 0.2s",
+            whiteSpace: "nowrap",
+          }}
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f5f5f7]">
-            <Lightbulb size={28} className="text-[#ff9500]" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-[#1d1d1f]">
-              I have a new idea
-            </h3>
-            <p className="mt-1 text-sm text-[#86868b]">
-              Let&apos;s validate and launch your concept.
-            </p>
-          </div>
+          {s}
         </button>
-      </div>
+      ))}
     </div>
   );
 }
 
-/* ────────────────────── step 2: details ─────────────────────── */
+function AnalyzingSpinner() {
+  const messages = [
+    "Analyzing your business profile...",
+    "Understanding your industry...",
+    "Crafting personalized questions...",
+    "Almost ready...",
+  ];
+  const [msgIdx, setMsgIdx] = useState(0);
 
-function Step2Existing({
-  data,
-  onUpdate,
-}: {
-  data: FormData;
-  onUpdate: (d: Partial<FormData>) => void;
-}) {
-  return (
-    <div className="animate-fade-in space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-[#1d1d1f] md:text-3xl">
-          Tell us about your business
-        </h1>
-        <p className="mt-2 text-[#86868b]">
-          We&apos;ll use this to build your custom AI plan.
-        </p>
-      </div>
-
-      <div className="space-y-5 pt-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1d1d1f]">
-            Company name <span className="text-[#ff3b30]">*</span>
-          </label>
-          <input
-            className="input"
-            placeholder="e.g. Acme Co"
-            value={data.companyName}
-            onChange={(e) => onUpdate({ companyName: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1d1d1f]">
-            Website URL
-          </label>
-          <div className="relative">
-            <Globe
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]"
-            />
-            <input
-              className="input pl-9"
-              placeholder="https://yoursite.com"
-              value={data.website}
-              onChange={(e) => onUpdate({ website: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1d1d1f]">
-            What do you sell? <span className="text-[#ff3b30]">*</span>
-          </label>
-          <textarea
-            className="input"
-            rows={2}
-            placeholder="e.g. Online courses for small business owners"
-            value={data.whatYouSell}
-            onChange={(e) => onUpdate({ whatYouSell: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1d1d1f]">
-            Who is your primary customer?{" "}
-            <span className="text-[#ff3b30]">*</span>
-          </label>
-          <div className="relative">
-            <Users
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]"
-            />
-            <input
-              className="input pl-9"
-              placeholder="e.g. Solo entrepreneurs aged 25-45"
-              value={data.primaryCustomer}
-              onChange={(e) => onUpdate({ primaryCustomer: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1d1d1f]">
-            Biggest challenge right now{" "}
-            <span className="text-[#ff3b30]">*</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {CHALLENGES.map((c) => (
-              <button
-                key={c}
-                onClick={() => onUpdate({ biggestChallenge: c })}
-                className={cn(
-                  "pill",
-                  data.biggestChallenge === c && "pill-active"
-                )}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Step2New({
-  data,
-  onUpdate,
-}: {
-  data: FormData;
-  onUpdate: (d: Partial<FormData>) => void;
-}) {
-  return (
-    <div className="animate-fade-in space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-[#1d1d1f] md:text-3xl">
-          Tell us about your idea
-        </h1>
-        <p className="mt-2 text-[#86868b]">
-          We&apos;ll help you validate and launch.
-        </p>
-      </div>
-
-      <div className="space-y-5 pt-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1d1d1f]">
-            Describe your business idea{" "}
-            <span className="text-[#ff3b30]">*</span>
-          </label>
-          <textarea
-            className="input"
-            rows={3}
-            placeholder="e.g. An app that helps freelancers track their expenses and send invoices"
-            value={data.businessIdea}
-            onChange={(e) => onUpdate({ businessIdea: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#1d1d1f]">
-            Category <span className="text-[#ff3b30]">*</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c}
-                onClick={() => onUpdate({ category: c })}
-                className={cn("pill", data.category === c && "pill-active")}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ────────────────────── step 3: goals ──────────────────────── */
-
-function Step3({
-  data,
-  onUpdate,
-}: {
-  data: FormData;
-  onUpdate: (d: Partial<FormData>) => void;
-}) {
-  const options =
-    data.path === "existing" ? GOAL_OPTIONS_EXISTING : GOAL_OPTIONS_NEW;
-
-  const toggleGoal = (goal: string) => {
-    const current = data.goals;
-    if (current.includes(goal)) {
-      onUpdate({ goals: current.filter((g) => g !== goal) });
-    } else if (current.length < 5) {
-      onUpdate({ goals: [...current, goal] });
-    }
-  };
-
-  return (
-    <div className="animate-fade-in">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-[#1d1d1f] md:text-3xl">
-          What are your top priorities?
-        </h1>
-        <p className="mt-2 text-[#86868b]">
-          Select 3 to 5 goals. Your AI team will focus here first.
-        </p>
-      </div>
-
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
-        {options.map((goal) => {
-          const selected = data.goals.includes(goal);
-          return (
-            <button
-              key={goal}
-              onClick={() => toggleGoal(goal)}
-              className={cn(
-                "pill px-5 py-2.5 text-sm",
-                selected && "pill-active"
-              )}
-            >
-              {selected && <CheckCircle2 size={14} className="mr-1" />}
-              {goal}
-            </button>
-          );
-        })}
-      </div>
-
-      <p className="mt-4 text-center text-xs text-[#86868b]">
-        {data.goals.length}/5 selected
-        {data.goals.length < 3 && " (pick at least 3)"}
-      </p>
-    </div>
-  );
-}
-
-/* ────────────────────── step 4: review ─────────────────────── */
-
-function Step4({
-  data,
-  onLaunch,
-  loading,
-}: {
-  data: FormData;
-  onLaunch: () => void;
-  loading: boolean;
-}) {
-  if (loading) {
-    return (
-      <div className="animate-fade-in flex flex-col items-center justify-center py-16">
-        <div className="relative">
-          <div className="h-16 w-16 rounded-full border-4 border-[#f5f5f7] border-t-[#0071e3]" style={{ animation: "spin-slow 1s linear infinite" }} />
-          <Sparkles
-            size={20}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#0071e3]"
-          />
-        </div>
-        <h2 className="mt-6 text-xl font-bold text-[#1d1d1f]">
-          AI is analyzing your business...
-        </h2>
-        <p className="mt-2 text-sm text-[#86868b]">
-          Building your 30-day action plan. This takes just a moment.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="animate-fade-in">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-[#1d1d1f] md:text-3xl">
-          Your AI team is ready.
-        </h1>
-        <p className="mt-2 text-[#86868b]">
-          Review your setup and launch when you&apos;re ready.
-        </p>
-      </div>
-
-      {/* Summary */}
-      <div className="mt-8 space-y-4">
-        <div className="card p-5">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#86868b]">
-            Business Details
-          </h3>
-          <div className="space-y-2 text-sm">
-            {data.path === "existing" ? (
-              <>
-                <SummaryRow label="Company" value={data.companyName} />
-                {data.website && (
-                  <SummaryRow label="Website" value={data.website} />
-                )}
-                <SummaryRow label="Product" value={data.whatYouSell} />
-                <SummaryRow label="Customer" value={data.primaryCustomer} />
-                <SummaryRow label="Challenge" value={data.biggestChallenge} />
-              </>
-            ) : (
-              <>
-                <SummaryRow label="Idea" value={data.businessIdea} />
-                <SummaryRow label="Category" value={data.category} />
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="card p-5">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#86868b]">
-            Priorities
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {data.goals.map((g) => (
-              <span key={g} className="badge badge-blue">
-                {g}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Agent team */}
-        <div className="card p-5">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#86868b]">
-            Your AI Team
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {AGENTS.map((agent) => (
-              <div
-                key={agent.name}
-                className="flex items-center gap-3 rounded-lg bg-[#f5f5f7] p-3"
-              >
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                  style={{ background: agent.color + "14" }}
-                >
-                  <agent.icon size={18} style={{ color: agent.color }} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-[#1d1d1f]">
-                    {agent.name}
-                  </p>
-                  <p className="text-xs text-[#86868b]">{agent.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <button
-        onClick={onLaunch}
-        className="btn btn-primary mt-8 w-full py-4 text-base"
-      >
-        <Rocket size={18} />
-        Launch My Business
-      </button>
-
-      <p className="mt-3 text-center text-xs text-[#86868b]">
-        You can change these settings anytime from your dashboard.
-      </p>
-    </div>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-3">
-      <span className="w-20 shrink-0 text-[#86868b]">{label}</span>
-      <span className="text-[#1d1d1f]">{value}</span>
-    </div>
-  );
-}
-
-/* ────────────────────── main wizard ────────────────────────── */
-
-export default function OnboardPage() {
-  const [step, setStep] = useState(1);
-  const [data, setData] = useState<FormData>(INITIAL);
-  const [launching, setLaunching] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
-
-  // Hydrate from sessionStorage after mount
   useEffect(() => {
-    const saved = loadFormData();
-    setData(saved);
-    // Restore step based on data completeness
-    if (saved.path && saved.goals.length >= 3) {
-      setStep(4);
-    } else if (saved.path && (saved.companyName || saved.businessIdea)) {
-      setStep(3);
-    } else if (saved.path) {
-      setStep(2);
+    const interval = setInterval(() => {
+      setMsgIdx((i) => (i < messages.length - 1 ? i + 1 : i));
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [messages.length]);
+
+  return (
+    <div style={{ textAlign: "center", padding: "40px 0" }}>
+      <div style={styles.spinner} />
+      <p style={{ color: T.secondary, fontSize: 15, animation: "fadeIn 0.3s ease" }} key={msgIdx}>
+        {messages[msgIdx]}
+      </p>
+    </div>
+  );
+}
+
+// ── Main wizard ────────────────────────────────────────────────────
+export default function OnboardingWizard() {
+  const router = useRouter();
+  const [state, setState] = useState<WizardState>(initialState);
+  const [direction, setDirection] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [resuming, setResuming] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const triedResume = useRef(false);
+
+  // Focus input on step change
+  useEffect(() => {
+    const timer = setTimeout(() => inputRef.current?.focus(), 400);
+    return () => clearTimeout(timer);
+  }, [state.currentStep]);
+
+  // Resume from sessionStorage
+  useEffect(() => {
+    if (triedResume.current) return;
+    triedResume.current = true;
+
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // If we have a complete wizard state with plan, try to create company
+        if (parsed.plan) {
+          createCompanyAndRedirect(parsed);
+          return;
+        }
+        setState(parsed);
+      } catch {
+        // Corrupt data, ignore
+      }
     }
-    setHydrated(true);
+    setResuming(false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const update = useCallback((partial: Partial<WizardState>) => {
+    setState((prev) => ({ ...prev, ...partial }));
+    setError(null);
   }, []);
 
-  // Persist on changes
+  const goNext = useCallback(() => {
+    setDirection(1);
+    setState((prev) => ({ ...prev, currentStep: prev.currentStep + 1 }));
+  }, []);
+
+  const goBack = useCallback(() => {
+    setDirection(-1);
+    setState((prev) => ({ ...prev, currentStep: prev.currentStep - 1 }));
+  }, []);
+
+  // Compute total steps and progress
+  const totalSteps = state.path === "existing" ? 7 : state.path === "new" ? 8 : 1;
+  const progressPct = ((state.currentStep + 1) / totalSteps) * 100;
+
+  // Persist to sessionStorage on state change
   useEffect(() => {
-    if (hydrated) saveFormData(data);
-  }, [data, hydrated]);
-
-  const update = useCallback(
-    (partial: Partial<FormData>) =>
-      setData((prev) => ({ ...prev, ...partial })),
-    []
-  );
-
-  const canAdvance = useCallback((): boolean => {
-    switch (step) {
-      case 1:
-        return data.path !== null;
-      case 2:
-        if (data.path === "existing") {
-          return !!(
-            data.companyName.trim() &&
-            data.whatYouSell.trim() &&
-            data.primaryCustomer.trim() &&
-            data.biggestChallenge
-          );
-        }
-        return !!(data.businessIdea.trim() && data.category);
-      case 3:
-        return data.goals.length >= 3;
-      default:
-        return true;
+    if (!resuming) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
-  }, [step, data]);
+  }, [state, resuming]);
 
-  const next = useCallback(() => {
-    if (canAdvance() && step < 4) setStep((s) => s + 1);
-  }, [canAdvance, step]);
-
-  const back = useCallback(() => {
-    if (step > 1) setStep((s) => s - 1);
-  }, [step]);
-
-  const launch = useCallback(async () => {
-    setLaunching(true);
+  // ── AI Goal Generation ─────────────────────────────────────────
+  const generateGoals = useCallback(async () => {
+    setLoading(true);
     try {
-      await fetch("/api/onboard", {
+      const body = state.path === "existing"
+        ? {
+            path: "existing",
+            website: state.website,
+            whatSell: state.whatSell,
+            primaryCustomer: state.primaryCustomer,
+            biggestChallenge: state.biggestChallenge,
+            monthlyRevenue: state.monthlyRevenue,
+            customerCount: state.customerCount,
+          }
+        : {
+            path: "new",
+            businessIdea: state.businessIdea,
+            ideaCategory: state.ideaCategory,
+            industry: state.industry,
+            stage: state.stage,
+            companyName: state.companyName,
+            problemSolves: state.problemSolves,
+            revenueModel: state.revenueModel,
+            hasCustomers: state.hasCustomers,
+            biggestConcern: state.biggestConcern,
+            ninetyDayVision: state.ninetyDayVision,
+          };
+
+      const res = await fetch("/api/onboard/generate-goals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
       });
-    } catch {
-      /* API may not exist yet -- proceed anyway */
-    }
-    // Simulate loading
-    await new Promise((r) => setTimeout(r, 2500));
-    sessionStorage.removeItem(STORAGE_KEY);
-    window.location.href = "/dashboard";
-  }, [data]);
+      const json = await res.json();
 
-  // Prevent flash before hydration
-  if (!hydrated) {
+      if (json.success && json.data?.questions) {
+        update({
+          aiGoalQuestions: json.data.questions,
+          goalAnswers: new Array(json.data.questions.length).fill(""),
+        });
+        goNext();
+      } else {
+        setError("Failed to generate questions. Please try again.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [state, update, goNext]);
+
+  // ── Plan Generation ────────────────────────────────────────────
+  const generatePlan = useCallback(async () => {
+    setLoading(true);
+    try {
+      const body = {
+        path: state.path,
+        website: state.website,
+        whatSell: state.whatSell,
+        primaryCustomer: state.primaryCustomer,
+        biggestChallenge: state.biggestChallenge,
+        monthlyRevenue: state.monthlyRevenue,
+        customerCount: state.customerCount,
+        businessIdea: state.businessIdea,
+        ideaCategory: state.ideaCategory,
+        industry: state.industry,
+        stage: state.stage,
+        companyName: state.companyName,
+        companyDescription: state.companyDescription,
+        problemSolves: state.problemSolves,
+        revenueModel: state.revenueModel,
+        hasCustomers: state.hasCustomers,
+        biggestConcern: state.biggestConcern,
+        ninetyDayVision: state.ninetyDayVision,
+        goalAnswers: state.goalAnswers,
+        aiGoalQuestions: state.aiGoalQuestions.map((q) => q.question),
+      };
+
+      const res = await fetch("/api/onboard/generate-goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...body, generatePlan: true }),
+      });
+      const json = await res.json();
+
+      if (json.success && json.data?.plan) {
+        update({ plan: json.data.plan });
+        goNext();
+      } else {
+        // Still advance with a placeholder
+        update({ plan: "Your personalized 7-day plan will be generated after account creation." });
+        goNext();
+      }
+    } catch {
+      update({ plan: "Your personalized 7-day plan will be generated after account creation." });
+      goNext();
+    } finally {
+      setLoading(false);
+    }
+  }, [state, update, goNext]);
+
+  // ── Company creation and redirect to dashboard ──────────────────
+  const createCompanyAndRedirect = async (wizardState: WizardState) => {
+    setLoading(true);
+    try {
+      const isExisting = wizardState.path === "existing";
+      const name = isExisting
+        ? (wizardState.website.replace(/^https?:\/\//, "").replace(/\/$/, "").split(".")[0] || "My Company")
+        : wizardState.companyName;
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const description = isExisting
+        ? wizardState.whatSell
+        : wizardState.companyDescription || wizardState.businessIdea;
+
+      const body = {
+        name,
+        slug,
+        description,
+        industry: wizardState.industry || wizardState.ideaCategory || "",
+        stage: wizardState.stage || "idea",
+        website: wizardState.website,
+        path: wizardState.path,
+        questionnaire: {
+          whatSell: wizardState.whatSell,
+          primaryCustomer: wizardState.primaryCustomer,
+          biggestChallenge: wizardState.biggestChallenge,
+          monthlyRevenue: wizardState.monthlyRevenue,
+          customerCount: wizardState.customerCount,
+          businessIdea: wizardState.businessIdea,
+          ideaCategory: wizardState.ideaCategory,
+          companyDescription: wizardState.companyDescription,
+          problemSolves: wizardState.problemSolves,
+          revenueModel: wizardState.revenueModel,
+          hasCustomers: wizardState.hasCustomers,
+          biggestConcern: wizardState.biggestConcern,
+          ninetyDayVision: wizardState.ninetyDayVision,
+          goalQuestions: wizardState.aiGoalQuestions.map((q, i) => ({
+            question: q.question,
+            answer: wizardState.goalAnswers[i] || "",
+          })),
+        },
+        plan: wizardState.plan,
+      };
+
+      const res = await fetch("/api/onboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        sessionStorage.removeItem(STORAGE_KEY);
+        router.push("/dashboard");
+      } else {
+        setError(json.error || "Something went wrong. Please try again.");
+        setResuming(false);
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setResuming(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLaunch = () => {
+    // Save full state and create company, then redirect to dashboard
+    const fullState = { ...state };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(fullState));
+    createCompanyAndRedirect(fullState);
+  };
+
+  // ── Step Renderers ─────────────────────────────────────────────
+
+  // Step 0: Path selector (shared)
+  const renderPathSelector = () => (
+    <div style={styles.stepContainer(direction)}>
+      <h1 style={styles.heading}>Let&apos;s get started</h1>
+      <p style={styles.subheading}>Tell us where you are on your business journey.</p>
+      <div style={{ display: "flex", gap: 12 }}>
+        <div
+          style={styles.pathCard(state.path === "existing")}
+          onClick={() => { update({ path: "existing" }); goNext(); }}
+        >
+          <div style={{ fontSize: 32, marginBottom: 12 }}>&#x1F3E2;</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: T.text, marginBottom: 4 }}>I have a business</div>
+          <div style={{ fontSize: 13, color: T.secondary }}>Import and optimize</div>
+        </div>
+        <div
+          style={styles.pathCard(state.path === "new")}
+          onClick={() => { update({ path: "new" }); goNext(); }}
+        >
+          <div style={{ fontSize: 32, marginBottom: 12 }}>&#x1F680;</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: T.text, marginBottom: 4 }}>I&apos;m starting one</div>
+          <div style={{ fontSize: 13, color: T.secondary }}>Build from scratch</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Existing Business Steps ────────────────────────────────────
+
+  const renderWebsite = () => (
+    <div style={styles.stepContainer(direction)}>
+      <button type="button" onClick={goBack} style={styles.backLink}>
+        &#x2190; Back
+      </button>
+      <h1 style={styles.heading}>What&apos;s your website?</h1>
+      <p style={styles.subheading}>We&apos;ll use this to learn about your business.</p>
+      <input
+        ref={inputRef as React.RefObject<HTMLInputElement>}
+        type="url"
+        value={state.website}
+        onChange={(e) => update({ website: e.target.value })}
+        placeholder="https://yourbusiness.com"
+        style={styles.input}
+        onFocus={(e) => { e.target.style.borderColor = T.accent; e.target.style.boxShadow = `0 0 0 3px ${T.selectedPillBg}`; }}
+        onBlur={(e) => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
+        onKeyDown={(e) => { if (e.key === "Enter" && state.website.trim()) goNext(); }}
+      />
+      <button
+        style={{ ...styles.primaryBtn, opacity: state.website.trim() ? 1 : 0.5 }}
+        disabled={!state.website.trim()}
+        onClick={goNext}
+      >
+        Continue
+      </button>
+    </div>
+  );
+
+  const renderExistingQuestion = (
+    questionNum: number,
+    question: string,
+    field: keyof WizardState,
+    type: "text" | "textarea" | "pills",
+    options?: string[],
+    placeholder?: string
+  ) => {
+    const val = state[field] as string;
+    const canContinue = val.trim().length > 0;
+    const isLastQuestion = questionNum === 5;
+
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 size={24} className="text-[#86868b]" style={{ animation: "spin-slow 1s linear infinite" }} />
+      <div style={styles.stepContainer(direction)}>
+        <button type="button" onClick={goBack} style={styles.backLink}>
+          &#x2190; Back
+        </button>
+        <p style={{ fontSize: 12, color: T.tertiary, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Question {questionNum} of 5
+        </p>
+        <h1 style={{ ...styles.heading, fontSize: 24 }}>{question}</h1>
+        {type === "pills" && options ? (
+          <div style={{ marginTop: 16 }}>
+            <PillGroup options={options} value={val} onChange={(v) => update({ [field]: v })} />
+          </div>
+        ) : type === "textarea" ? (
+          <textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            value={val}
+            onChange={(e) => update({ [field]: e.target.value })}
+            placeholder={placeholder}
+            style={styles.textarea}
+            onFocus={(e) => { e.target.style.borderColor = T.accent; e.target.style.boxShadow = `0 0 0 3px ${T.selectedPillBg}`; }}
+            onBlur={(e) => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
+          />
+        ) : (
+          <input
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            value={val}
+            onChange={(e) => update({ [field]: e.target.value })}
+            placeholder={placeholder}
+            style={styles.input}
+            onFocus={(e) => { e.target.style.borderColor = T.accent; e.target.style.boxShadow = `0 0 0 3px ${T.selectedPillBg}`; }}
+            onBlur={(e) => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
+            onKeyDown={(e) => { if (e.key === "Enter" && canContinue) { isLastQuestion ? generateGoals() : goNext(); } }}
+          />
+        )}
+        <button
+          style={{ ...styles.primaryBtn, opacity: canContinue ? 1 : 0.5 }}
+          disabled={!canContinue}
+          onClick={isLastQuestion ? generateGoals : goNext}
+        >
+          {isLastQuestion ? "Generate My Goals" : "Continue"}
+        </button>
       </div>
     );
-  }
+  };
 
-  return (
-    <div>
-      <StepIndicator current={step} total={4} />
+  // ── New Business Steps ─────────────────────────────────────────
 
-      <div className="min-h-[400px]">
-        {step === 1 && <Step1 data={data} onUpdate={update} onNext={next} />}
+  const renderBusinessIdea = () => (
+    <div style={styles.stepContainer(direction)}>
+      <button type="button" onClick={goBack} style={styles.backLink}>
+        &#x2190; Back
+      </button>
+      <h1 style={styles.heading}>What are you building?</h1>
+      <p style={styles.subheading}>Describe your business idea in a few sentences.</p>
+      <textarea
+        ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+        value={state.businessIdea}
+        onChange={(e) => update({ businessIdea: e.target.value })}
+        placeholder="e.g., An AI-powered meal planning app for busy professionals..."
+        style={styles.textarea}
+        onFocus={(e) => { e.target.style.borderColor = T.accent; e.target.style.boxShadow = `0 0 0 3px ${T.selectedPillBg}`; }}
+        onBlur={(e) => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
+      />
+      <div style={{ marginTop: 12 }}>
+        <p style={{ fontSize: 12, color: T.tertiary, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Or pick a category
+        </p>
+        <PillGroup options={IDEA_CATEGORIES} value={state.ideaCategory} onChange={(v) => update({ ideaCategory: v })} />
+      </div>
+      <button
+        style={{ ...styles.primaryBtn, opacity: state.businessIdea.trim() ? 1 : 0.5 }}
+        disabled={!state.businessIdea.trim()}
+        onClick={goNext}
+      >
+        Continue
+      </button>
+    </div>
+  );
 
-        {step === 2 &&
-          (data.path === "existing" ? (
-            <Step2Existing data={data} onUpdate={update} />
-          ) : (
-            <Step2New data={data} onUpdate={update} />
+  const renderIndustryStage = () => (
+    <div style={styles.stepContainer(direction)}>
+      <button type="button" onClick={goBack} style={styles.backLink}>
+        &#x2190; Back
+      </button>
+      <h1 style={styles.heading}>Industry &amp; Stage</h1>
+      <p style={styles.subheading}>Help us understand your market and where you are.</p>
+      <div style={{ marginBottom: 24 }}>
+        <label style={styles.label}>Industry</label>
+        <PillGroup options={INDUSTRIES} value={state.industry} onChange={(v) => update({ industry: v })} />
+      </div>
+      <div>
+        <label style={styles.label}>Stage</label>
+        <StageSelector value={state.stage} onChange={(v) => update({ stage: v })} />
+      </div>
+      <button
+        style={{ ...styles.primaryBtn, opacity: state.industry && state.stage ? 1 : 0.5 }}
+        disabled={!state.industry || !state.stage}
+        onClick={goNext}
+      >
+        Continue
+      </button>
+    </div>
+  );
+
+  const renderCompanyIdentity = () => {
+    const slug = state.companyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    return (
+      <div style={styles.stepContainer(direction)}>
+        <button type="button" onClick={goBack} style={styles.backLink}>
+          &#x2190; Back
+        </button>
+        <h1 style={styles.heading}>Company Identity</h1>
+        <p style={styles.subheading}>What should we call it?</p>
+        <div style={{ marginBottom: 20 }}>
+          <label style={styles.label}>Company Name</label>
+          <input
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            value={state.companyName}
+            onChange={(e) => update({ companyName: e.target.value })}
+            placeholder="My Awesome Company"
+            style={styles.input}
+            onFocus={(e) => { e.target.style.borderColor = T.accent; e.target.style.boxShadow = `0 0 0 3px ${T.selectedPillBg}`; }}
+            onBlur={(e) => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
+          />
+          {slug && <p style={styles.slugPreview}>{slug}.runmybiz.app</p>}
+        </div>
+        <div>
+          <label style={styles.label}>Short Description</label>
+          <textarea
+            value={state.companyDescription}
+            onChange={(e) => { if (e.target.value.length <= 280) update({ companyDescription: e.target.value }); }}
+            placeholder="A one-liner about what your company does..."
+            style={{ ...styles.textarea, minHeight: 80 }}
+            onFocus={(e) => { e.target.style.borderColor = T.accent; e.target.style.boxShadow = `0 0 0 3px ${T.selectedPillBg}`; }}
+            onBlur={(e) => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
+          />
+          <p style={styles.charCount}>{state.companyDescription.length}/280</p>
+        </div>
+        <button
+          style={{ ...styles.primaryBtn, opacity: state.companyName.trim() ? 1 : 0.5 }}
+          disabled={!state.companyName.trim()}
+          onClick={goNext}
+        >
+          Continue
+        </button>
+      </div>
+    );
+  };
+
+  const renderNewQuestion = (
+    questionNum: number,
+    question: string,
+    field: keyof WizardState,
+    type: "text" | "textarea" | "pills",
+    options?: string[],
+    placeholder?: string
+  ) => {
+    const val = state[field] as string;
+    const canContinue = val.trim().length > 0;
+    const isLastQuestion = questionNum === 5;
+
+    return (
+      <div style={styles.stepContainer(direction)}>
+        <button type="button" onClick={goBack} style={styles.backLink}>
+          &#x2190; Back
+        </button>
+        <p style={{ fontSize: 12, color: T.tertiary, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Question {questionNum} of 5
+        </p>
+        <h1 style={{ ...styles.heading, fontSize: 24 }}>{question}</h1>
+        {type === "pills" && options ? (
+          <div style={{ marginTop: 16 }}>
+            <PillGroup options={options} value={val} onChange={(v) => update({ [field]: v })} />
+          </div>
+        ) : type === "textarea" ? (
+          <textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            value={val}
+            onChange={(e) => update({ [field]: e.target.value })}
+            placeholder={placeholder}
+            style={styles.textarea}
+            onFocus={(e) => { e.target.style.borderColor = T.accent; e.target.style.boxShadow = `0 0 0 3px ${T.selectedPillBg}`; }}
+            onBlur={(e) => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
+          />
+        ) : (
+          <input
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            value={val}
+            onChange={(e) => update({ [field]: e.target.value })}
+            placeholder={placeholder}
+            style={styles.input}
+            onFocus={(e) => { e.target.style.borderColor = T.accent; e.target.style.boxShadow = `0 0 0 3px ${T.selectedPillBg}`; }}
+            onBlur={(e) => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
+            onKeyDown={(e) => { if (e.key === "Enter" && canContinue) { isLastQuestion ? generateGoals() : goNext(); } }}
+          />
+        )}
+        <button
+          style={{ ...styles.primaryBtn, opacity: canContinue ? 1 : 0.5 }}
+          disabled={!canContinue}
+          onClick={isLastQuestion ? generateGoals : goNext}
+        >
+          {isLastQuestion ? "Generate My Goals" : "Continue"}
+        </button>
+      </div>
+    );
+  };
+
+  // ── AI Goal Questions (shared) ─────────────────────────────────
+  const [goalSubStep, setGoalSubStep] = useState(0);
+
+  const renderGoalQuestion = () => {
+    const q = state.aiGoalQuestions[goalSubStep];
+    if (!q) return null;
+    const answer = state.goalAnswers[goalSubStep] || "";
+    const canContinue = answer.trim().length > 0;
+    const isLast = goalSubStep === state.aiGoalQuestions.length - 1;
+
+    const updateAnswer = (val: string) => {
+      const updated = [...state.goalAnswers];
+      updated[goalSubStep] = val;
+      update({ goalAnswers: updated });
+    };
+
+    return (
+      <div style={styles.stepContainer(direction)}>
+        <button
+          type="button"
+          onClick={() => { if (goalSubStep > 0) setGoalSubStep(goalSubStep - 1); else goBack(); }}
+          style={styles.backLink}
+        >
+          &#x2190; Back
+        </button>
+        <p style={{ fontSize: 12, color: T.tertiary, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Goal {goalSubStep + 1} of {state.aiGoalQuestions.length}
+        </p>
+        <h1 style={{ ...styles.heading, fontSize: 24 }}>{q.question}</h1>
+        {q.type === "pills" && q.choices ? (
+          <div style={{ marginTop: 16 }}>
+            <PillGroup options={q.choices} value={answer} onChange={updateAnswer} />
+          </div>
+        ) : (
+          <textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            value={answer}
+            onChange={(e) => updateAnswer(e.target.value)}
+            placeholder={q.placeholder || "Your answer..."}
+            style={styles.textarea}
+            onFocus={(e) => { e.target.style.borderColor = T.accent; e.target.style.boxShadow = `0 0 0 3px ${T.selectedPillBg}`; }}
+            onBlur={(e) => { e.target.style.borderColor = T.border; e.target.style.boxShadow = "none"; }}
+          />
+        )}
+        <button
+          style={{ ...styles.primaryBtn, opacity: canContinue ? 1 : 0.5 }}
+          disabled={!canContinue}
+          onClick={() => {
+            if (isLast) {
+              generatePlan();
+            } else {
+              setGoalSubStep(goalSubStep + 1);
+            }
+          }}
+        >
+          {isLast ? "See My Plan" : "Continue"}
+        </button>
+      </div>
+    );
+  };
+
+  // ── Plan Preview (shared) ──────────────────────────────────────
+  const renderPlanPreview = () => {
+    const planSteps = state.plan
+      ? state.plan.split("\n").filter((l) => l.trim())
+      : ["Your plan will be generated after account creation."];
+
+    return (
+      <div style={styles.stepContainer(direction)}>
+        <button type="button" onClick={goBack} style={styles.backLink}>
+          &#x2190; Back
+        </button>
+        <h1 style={styles.heading}>Your 7-Day Plan</h1>
+        <p style={styles.subheading}>Here&apos;s what your AI agent will focus on first.</p>
+        <div style={{ maxHeight: 320, overflowY: "auto", marginBottom: 8 }}>
+          {planSteps.map((step, i) => (
+            <div key={i} style={styles.planStep}>{step}</div>
           ))}
+        </div>
+        <button style={styles.primaryBtn} onClick={goNext}>
+          Launch My Business
+        </button>
+      </div>
+    );
+  };
 
-        {step === 3 && <Step3 data={data} onUpdate={update} />}
-
-        {step === 4 && (
-          <Step4 data={data} onLaunch={launch} loading={launching} />
+  // ── Launch (redirects to dashboard) ────────────────────────────
+  const renderLaunch = () => (
+    <div style={styles.stepContainer(direction)}>
+      <button type="button" onClick={goBack} style={styles.backLink}>
+        &#x2190; Back
+      </button>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>&#x2728;</div>
+        <h1 style={styles.heading}>Ready to launch!</h1>
+        <p style={styles.subheading}>
+          Everything is set up. Let&apos;s activate your AI agent and get to work.
+        </p>
+        <button style={styles.primaryBtn} onClick={handleLaunch}>
+          {loading ? "Creating..." : "Launch My Business"}
+        </button>
+        {error && (
+          <p style={{ color: "#ff3b30", fontSize: 14, marginTop: 12 }}>{error}</p>
         )}
       </div>
-
-      {/* Navigation buttons (hidden on step 1 and during launch) */}
-      {step > 1 && !launching && (
-        <div className="mt-10 flex items-center justify-between">
-          <button onClick={back} className="btn btn-ghost">
-            <ArrowLeft size={16} />
-            Back
-          </button>
-
-          {step < 4 && (
-            <button
-              onClick={next}
-              disabled={!canAdvance()}
-              className="btn btn-primary"
-            >
-              Continue
-              <ArrowRight size={16} />
-            </button>
-          )}
-        </div>
-      )}
     </div>
+  );
+
+  // ── Step Router ────────────────────────────────────────────────
+  const renderStep = () => {
+    // Loading states
+    if (resuming || (loading && state.currentStep === 0)) {
+      return (
+        <div style={{ textAlign: "center", padding: "40px 0" }}>
+          <div style={styles.spinner} />
+          <p style={{ color: T.secondary, fontSize: 15 }}>Setting up...</p>
+        </div>
+      );
+    }
+
+    if (loading) return <AnalyzingSpinner />;
+
+    const step = state.currentStep;
+
+    // Step 0: Path selector (both paths)
+    if (step === 0) return renderPathSelector();
+
+    // ── Path A: Existing Business ────────────────────────────────
+    if (state.path === "existing") {
+      switch (step) {
+        case 1: return renderWebsite();
+        case 2: return renderExistingQuestion(1, "What does your business sell or offer?", "whatSell", "textarea", undefined, "e.g., We sell handmade candles online...");
+        case 3: return renderExistingQuestion(2, "Who is your primary customer?", "primaryCustomer", "text", undefined, "e.g., Health-conscious millennials in urban areas...");
+        case 4: return renderExistingQuestion(3, "Biggest challenge right now?", "biggestChallenge", "pills", CHALLENGES);
+        case 5: return renderExistingQuestion(4, "Approximate monthly revenue?", "monthlyRevenue", "pills", REVENUES);
+        case 6: return renderExistingQuestion(5, "How many customers/users today?", "customerCount", "pills", CUSTOMER_COUNTS);
+        // After question 5, generateGoals() fires -> step 7
+        case 7: return renderGoalQuestion();
+        // After all goals answered, generatePlan() fires -> step 8
+        case 8: return renderPlanPreview();
+        case 9: return renderLaunch();
+        default: return renderPathSelector();
+      }
+    }
+
+    // ── Path B: New Business ─────────────────────────────────────
+    if (state.path === "new") {
+      switch (step) {
+        case 1: return renderBusinessIdea();
+        case 2: return renderIndustryStage();
+        case 3: return renderCompanyIdentity();
+        case 4: return renderNewQuestion(1, "What problem does this solve, and for whom?", "problemSolves", "textarea", undefined, "e.g., Busy parents who can't find healthy meal options...");
+        case 5: return renderNewQuestion(2, "How do you plan to make money?", "revenueModel", "pills", REVENUE_MODELS);
+        case 6: return renderNewQuestion(3, "Do you have paying customers yet?", "hasCustomers", "pills", HAS_CUSTOMERS_OPTIONS);
+        case 7: return renderNewQuestion(4, "Biggest concern about building this?", "biggestConcern", "textarea", undefined, "e.g., Not sure how to find my first customers...");
+        case 8: return renderNewQuestion(5, "What would success look like in 90 days?", "ninetyDayVision", "textarea", undefined, "e.g., 100 paying subscribers and $5K MRR...");
+        // After question 5, generateGoals() fires -> step 9
+        case 9: return renderGoalQuestion();
+        // After all goals answered, generatePlan() fires -> step 10
+        case 10: return renderPlanPreview();
+        case 11: return renderLaunch();
+        default: return renderPathSelector();
+      }
+    }
+
+    return renderPathSelector();
+  };
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: KEYFRAMES }} />
+      <div style={styles.page}>
+        <div style={styles.card}>
+          <div style={{ ...styles.progress, width: `${progressPct}%` }} />
+          {renderStep()}
+        </div>
+      </div>
+    </>
   );
 }
