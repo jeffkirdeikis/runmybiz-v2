@@ -505,17 +505,6 @@ const comparisonSources = [
   { role: "AI Engineer", amount: "$150,000/yr", source: "Glassdoor / Motion Recruitment, 2025" },
 ];
 
-/* #2 — Demo live feed items */
-const demoFeedItems = [
-  { company: "MerakiSaaS", task: "Deployed pricing page v2.3 to production", icon: "deploy" },
-  { company: "FitBoxStore", task: "Sent 34 abandoned cart recovery emails", icon: "email" },
-  { company: "TechConsult", task: "Published quarterly insights report", icon: "content" },
-  { company: "NomadGear", task: "Fixed mobile checkout flow for Safari", icon: "code" },
-  { company: "HealthTrack", task: "Launched Facebook retargeting campaign", icon: "ads" },
-  { company: "CloudKitchen", task: "Responded to 12 customer support tickets", icon: "support" },
-  { company: "DesignCo", task: "Updated SEO meta tags on 8 landing pages", icon: "content" },
-  { company: "PayrollPro", task: "Patched CSV export bug reported yesterday", icon: "code" },
-];
 
 
 /* ============================================================
@@ -543,12 +532,6 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  /* #2 — Demo feed cycling */
-  const [feedIndex, setFeedIndex] = useState(0);
-  useEffect(() => {
-    const iv = setInterval(() => setFeedIndex((i) => (i + 1) % demoFeedItems.length), 3000);
-    return () => clearInterval(iv);
-  }, []);
 
 
   return (
@@ -786,56 +769,6 @@ export default function LandingPage() {
               </div>
               <p className="text-center mt-6 text-[14px]" style={{ color: "#86868b", lineHeight: 1.5 }}>
                 Spending money, emailing customers, deploying to production — your AI asks first.<br />Low-risk tasks run automatically so you only see what matters.
-              </p>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ===== #2 — LIVE DEMO FEED ===== */}
-      <section className="py-24" style={{ background: "#fff" }}>
-        <div className="max-w-[980px] mx-auto px-6">
-          <Reveal>
-            <h2 className="text-center font-semibold mb-3" style={{ fontSize: "clamp(32px, 4vw, 48px)", letterSpacing: "-0.015em", color: "#1d1d1f", lineHeight: 1.08 }}>
-              Always working.
-            </h2>
-            <p className="text-center mb-12" style={{ fontSize: 19, color: "#86868b" }}>
-              AI agents across RunMyBiz are completing tasks right now.
-            </p>
-          </Reveal>
-
-          <Reveal delay={0.15}>
-            <div className="max-w-[520px] mx-auto">
-              <div className="rounded-2xl overflow-hidden" style={{ background: "#fbfbfd", border: "1px solid #e8e8ed" }}>
-                <div className="px-6 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid #f0f0f5" }}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ background: "#34a853", animation: "pulse-dot 2s ease-in-out infinite" }} />
-                    <span className="text-[13px] font-semibold" style={{ color: "#1d1d1f" }}>Live Activity</span>
-                  </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider" style={{ background: "#e8e8ed", color: "#86868b" }}>Demo</span>
-                </div>
-                <div className="divide-y" style={{ borderColor: "#f0f0f5" }}>
-                  {[0, 1, 2, 3].map((offset) => {
-                    const idx = (feedIndex + offset) % demoFeedItems.length;
-                    const item = demoFeedItems[idx];
-                    const times = ["just now", "2m ago", "5m ago", "8m ago"];
-                    return (
-                      <div key={`${feedIndex}-${offset}`} className="px-6 py-3.5 flex items-center justify-between" style={{ animation: offset === 0 ? "fadeSlideIn 0.4s ease-out" : undefined, borderBottom: "1px solid #f0f0f5" }}>
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: offset === 0 ? "#34a853" : "#d2d2d7" }} />
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-medium truncate" style={{ color: "#1d1d1f" }}>{item.task}</p>
-                            <p className="text-[11px]" style={{ color: "#86868b" }}>{item.company}</p>
-                          </div>
-                        </div>
-                        <span className="text-[11px] shrink-0 ml-4 tabular-nums" style={{ color: "#aeaeb2" }}>{times[offset]}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <p className="text-center mt-4 text-[12px]" style={{ color: "#aeaeb2" }}>
-                Simulated activity for demonstration purposes
               </p>
             </div>
           </Reveal>
