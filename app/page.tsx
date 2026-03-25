@@ -547,7 +547,10 @@ export default function LandingPage() {
         transition: "background 0.3s, box-shadow 0.3s",
       }}>
         <div className="max-w-[980px] mx-auto px-6 h-12 flex items-center justify-between">
-          <Link href="/" className="text-base font-semibold" style={{ color: "#1d1d1f" }}>RunMyBiz</Link>
+          <Link href="/" className="flex items-center gap-2 text-base font-semibold" style={{ color: "#1d1d1f" }}>
+            <img src="/logo.svg" alt="RunMyBiz" className="w-7 h-7" />
+            RunMyBiz
+          </Link>
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="text-xs" style={{ color: "#1d1d1f", opacity: 0.8 }}>Sign In</Link>
             <Link href="/onboard" className="text-xs font-medium px-4 py-1.5 rounded-full transition-shadow duration-300" style={{

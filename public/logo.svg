@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <circle cx="100" cy="100" r="88" fill="white" stroke="black" stroke-width="10"/>
+  <text x="100" y="78" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="42" fill="black">RUN</text>
+  <text x="88" y="118" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="32" fill="black">MY</text>
+  <text x="100" y="158" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="48" fill="black">BIZ</text>
+  <circle cx="138" cy="72" r="8" fill="#3B82F6"/>
+</svg>
